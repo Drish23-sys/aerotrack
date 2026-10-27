@@ -1,0 +1,21 @@
+# Render Blueprint: creates the API web service. The database lives elsewhere (e.g. Neon),
+# because Render's free Postgres expires after 30 days.
+services:
+  - type: web
+    name: aerotrack-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # On every start: create tables + sample data only if they do not exist yet, then serve the API.
+    startCommand: python init_db.py --if-empty && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: DATABASE_URL        # paste your Neon connection string (ends with ?sslmode=require)
+        sync: false
+      - key: CORS_ORIGINS        # your Vercel URL, e.g. https://aerotrack.vercel.app (no trailing slash)
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
